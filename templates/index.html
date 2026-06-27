@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Selenium Automation Framework — Dashboard for monitoring and controlling browser automation workflows.">
+    <title>Automation Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════
+           Design System
+           ═══════════════════════════════════════════ */
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2235;
+            --bg-card-hover: #1f2a40;
+            --bg-input: #0d1321;
+            --border-subtle: #2a3550;
+            --border-glow: #3b82f6;
+
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            --accent-blue: #3b82f6;
+            --accent-blue-glow: rgba(59, 130, 246, 0.25);
+            --accent-green: #22c55e;
+            --accent-green-glow: rgba(34, 197, 94, 0.2);
+            --accent-red: #ef4444;
+            --accent-red-glow: rgba(239, 68, 68, 0.2);
+            --accent-amber: #f59e0b;
+            --accent-amber-glow: rgba(245, 158, 11, 0.2);
+            --accent-purple: #a855f7;
+
+            --gradient-blue: linear-gradient(135deg, #3b82f6, #2563eb);
+            --gradient-green: linear-gradient(135deg, #22c55e, #16a34a);
+            --gradient-red: linear-gradient(135deg, #ef4444, #dc2626);
+
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-glow: 0 0 20px var(--accent-blue-glow);
+
+            --transition-fast: 150ms ease;
+            --transition-base: 250ms ease;
+        }
+
+        /* ═══════════════════════════════════════════
+           Reset & Base
+           ═══════════════════════════════════════════ */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══════════════════════════════════════════
+           Layout
+           ═══════════════════════════════════════════ */
+        .app {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* ═══════════════════════════════════════════
+           Header
+           ═══════════════════════════════════════════ */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .header__brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header__icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gradient-blue);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .header__title {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header__subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .header__controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* ═══════════════════════════════════════════
+           Buttons
+           ═══════════════════════════════════════════ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0);
+            transition: background var(--transition-fast);
+        }
+
+        .btn:hover::after {
+            background: rgba(255,255,255,0.08);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn--start {
+            background: var(--gradient-green);
+            color: white;
+            box-shadow: 0 2px 12px var(--accent-green-glow);
+        }
+
+        .btn--start:hover {
+            box-shadow: 0 4px 20px var(--accent-green-glow);
+        }
+
+        .btn--stop {
+            background: var(--gradient-red);
+            color: white;
+            box-shadow: 0 2px 12px var(--accent-red-glow);
+        }
+
+        .btn--stop:hover {
+            box-shadow: 0 4px 20px var(--accent-red-glow);
+        }
+
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled::after {
+            display: none;
+        }
+
+        /* ═══════════════════════════════════════════
+           Status Cards Grid
+           ═══════════════════════════════════════════ */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            transition: all var(--transition-base);
+            box-shadow: var(--shadow-card);
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .card__label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .card__value {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .card__value--mono {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge__dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .badge--active {
+            background: var(--accent-green-glow);
+            color: var(--accent-green);
+        }
+
+        .badge--active .badge__dot {
+            background: var(--accent-green);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .badge--idle {
+            background: rgba(100, 116, 139, 0.15);
+            color: var(--text-secondary);
+        }
+
+        .badge--idle .badge__dot {
+            background: var(--text-muted);
+        }
+
+        .badge--error {
+            background: var(--accent-red-glow);
+            color: var(--accent-red);
+        }
+
+        .badge--error .badge__dot {
+            background: var(--accent-red);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* ═══════════════════════════════════════════
+           State Visualization
+           ═══════════════════════════════════════════ */
+        .state-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 28px;
+            box-shadow: var(--shadow-card);
+            overflow-x: auto;
+        }
+
+        .state-bar__title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+        }
+
+        .state-pipeline {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: max-content;
+        }
+
+        .state-node {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+            background: rgba(100, 116, 139, 0.1);
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            transition: all var(--transition-base);
+        }
+
+        .state-node--active {
+            background: var(--accent-blue-glow);
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 12px var(--accent-blue-glow);
+        }
+
+        .state-node--completed {
+            background: var(--accent-green-glow);
+            color: var(--accent-green);
+        }
+
+        .state-arrow {
+            color: var(--text-muted);
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        /* ═══════════════════════════════════════════
+           Log Viewer
+           ═══════════════════════════════════════════ */
+        .log-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .log-header__title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .log-header__live {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-green);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .log-header__live .badge__dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .log-viewer {
+            height: 420px;
+            overflow-y: auto;
+            padding: 16px 20px;
+            background: var(--bg-input);
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            line-height: 1.8;
+        }
+
+        .log-viewer::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-viewer::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .log-viewer::-webkit-scrollbar-thumb {
+            background: var(--border-subtle);
+            border-radius: 3px;
+        }
+
+        .log-line {
+            display: block;
+            padding: 1px 0;
+            color: var(--text-secondary);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .log-line--info { color: var(--text-secondary); }
+        .log-line--warning { color: var(--accent-amber); }
+        .log-line--error { color: var(--accent-red); }
+
+        .log-empty {
+            color: var(--text-muted);
+            font-style: italic;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ═══════════════════════════════════════════
+           Toast Notifications
+           ═══════════════════════════════════════════ */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+            backdrop-filter: blur(12px);
+        }
+
+        .toast--success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--accent-green);
+        }
+
+        .toast--error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--accent-red);
+        }
+
+        .toast--info {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: var(--accent-blue);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* ═══════════════════════════════════════════
+           Responsive
+           ═══════════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            .status-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .state-bar {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- ═══ Header ═══ -->
+        <header class="header">
+            <div class="header__brand">
+                <div class="header__icon">⚡</div>
+                <div>
+                    <h1 class="header__title">Automation Dashboard</h1>
+                    <p class="header__subtitle">Selenium Automation Framework — Control Panel</p>
+                </div>
+            </div>
+            <div class="header__controls">
+                <button id="btn-start" class="btn btn--start" onclick="startAutomation()">
+                    ▶ Start
+                </button>
+                <button id="btn-stop" class="btn btn--stop" onclick="stopAutomation()" disabled>
+                    ■ Stop
+                </button>
+            </div>
+        </header>
+
+        <!-- ═══ Status Cards ═══ -->
+        <div class="status-grid">
+            <div class="card">
+                <div class="card__label">Automation Status</div>
+                <div class="card__value" id="status-running">
+                    <span class="badge badge--idle">
+                        <span class="badge__dot"></span>
+                        Idle
+                    </span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card__label">Current State</div>
+                <div class="card__value" id="status-state">IDLE</div>
+            </div>
+            <div class="card">
+                <div class="card__label">Browser Status</div>
+                <div class="card__value" id="status-browser">
+                    <span class="badge badge--idle">
+                        <span class="badge__dot"></span>
+                        Closed
+                    </span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card__label">Cycle Count</div>
+                <div class="card__value" id="status-cycles">0</div>
+            </div>
+            <div class="card" style="grid-column: 1 / -1;">
+                <div class="card__label">Current URL</div>
+                <div class="card__value card__value--mono" id="status-url">—</div>
+            </div>
+        </div>
+
+        <!-- ═══ State Pipeline ═══ -->
+        <div class="state-bar">
+            <div class="state-bar__title">Workflow Pipeline</div>
+            <div class="state-pipeline" id="state-pipeline">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- ═══ Log Viewer ═══ -->
+        <div class="log-section">
+            <div class="log-header">
+                <div class="log-header__title">📋 Live Logs</div>
+                <div class="log-header__live" id="log-live-indicator" style="display:none;">
+                    <span class="badge__dot"></span>
+                    LIVE
+                </div>
+            </div>
+            <div class="log-viewer" id="log-viewer">
+                <div class="log-empty">Waiting for automation to start...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        /* ═══════════════════════════════════════════
+           Constants
+           ═══════════════════════════════════════════ */
+        const POLL_INTERVAL = 2000; // ms
+        const STATES = [
+            'IDLE', 'OPEN_SOURCE', 'WAIT_PAGE', 'HANDLE_POPUP',
+            'LOCATE_AD', 'CLICK_AD', 'WAIT_DESTINATION',
+            'DESTINATION_READY', 'RETURN_SOURCE', 'WAIT_NEXT_CYCLE'
+        ];
+
+        /* ═══════════════════════════════════════════
+           State
+           ═══════════════════════════════════════════ */
+        let pollTimer = null;
+        let previousLogCount = 0;
+        let isRunning = false;
+
+        /* ═══════════════════════════════════════════
+           Initialization
+           ═══════════════════════════════════════════ */
+        document.addEventListener('DOMContentLoaded', () => {
+            buildStatePipeline();
+            startPolling();
+        });
+
+        /* ═══════════════════════════════════════════
+           API Calls
+           ═══════════════════════════════════════════ */
+        async function startAutomation() {
+            const btn = document.getElementById('btn-start');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/start', { method: 'POST' });
+                const data = await res.json();
+                showToast(data.message, 'success');
+            } catch (e) {
+                showToast('Failed to start automation', 'error');
+                btn.disabled = false;
+            }
+        }
+
+        async function stopAutomation() {
+            const btn = document.getElementById('btn-stop');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/stop', { method: 'POST' });
+                const data = await res.json();
+                showToast(data.message, 'info');
+            } catch (e) {
+                showToast('Failed to stop automation', 'error');
+                btn.disabled = false;
+            }
+        }
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                updateDashboard(data);
+            } catch (e) {
+                // Silently retry on next poll
+            }
+        }
+
+        /* ═══════════════════════════════════════════
+           Dashboard Updates
+           ═══════════════════════════════════════════ */
+        function updateDashboard(data) {
+            isRunning = data.running;
+
+            // Buttons
+            document.getElementById('btn-start').disabled = isRunning;
+            document.getElementById('btn-stop').disabled = !isRunning;
+
+            // Automation Status
+            const statusEl = document.getElementById('status-running');
+            if (isRunning) {
+                statusEl.innerHTML = `
+                    <span class="badge badge--active">
+                        <span class="badge__dot"></span>
+                        Running
+                    </span>`;
+            } else {
+                statusEl.innerHTML = `
+                    <span class="badge badge--idle">
+                        <span class="badge__dot"></span>
+                        Idle
+                    </span>`;
+            }
+
+            // Current State
+            const stateEl = document.getElementById('status-state');
+            stateEl.textContent = data.state || 'IDLE';
+
+            // Browser Status
+            const browserEl = document.getElementById('status-browser');
+            if (data.browser_alive) {
+                browserEl.innerHTML = `
+                    <span class="badge badge--active">
+                        <span class="badge__dot"></span>
+                        Open
+                    </span>`;
+            } else {
+                browserEl.innerHTML = `
+                    <span class="badge badge--idle">
+                        <span class="badge__dot"></span>
+                        Closed
+                    </span>`;
+            }
+
+            // Cycle Count
+            document.getElementById('status-cycles').textContent = data.cycle_count || 0;
+
+            // Current URL
+            const urlEl = document.getElementById('status-url');
+            urlEl.textContent = data.current_url || '—';
+
+            // State Pipeline
+            updateStatePipeline(data.state || 'IDLE');
+
+            // Live indicator
+            const liveEl = document.getElementById('log-live-indicator');
+            liveEl.style.display = isRunning ? 'flex' : 'none';
+
+            // Logs
+            updateLogs(data.logs || []);
+        }
+
+        function updateStatePipeline(currentState) {
+            const nodes = document.querySelectorAll('.state-node');
+            const currentIdx = STATES.indexOf(currentState);
+
+            nodes.forEach((node, i) => {
+                node.classList.remove('state-node--active', 'state-node--completed');
+
+                if (i === currentIdx) {
+                    node.classList.add('state-node--active');
+                } else if (isRunning && i < currentIdx) {
+                    node.classList.add('state-node--completed');
+                }
+            });
+        }
+
+        function updateLogs(logs) {
+            const viewer = document.getElementById('log-viewer');
+
+            if (!logs || logs.length === 0) {
+                if (previousLogCount === 0) return;
+                viewer.innerHTML = '<div class="log-empty">Waiting for automation to start...</div>';
+                previousLogCount = 0;
+                return;
+            }
+
+            // Only update if log count changed
+            if (logs.length === previousLogCount) return;
+
+            viewer.innerHTML = logs.map(line => {
+                let cls = 'log-line--info';
+                if (line.includes('WARNING')) cls = 'log-line--warning';
+                else if (line.includes('ERROR')) cls = 'log-line--error';
+
+                // Escape HTML
+                const safe = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<span class="log-line ${cls}">${safe}</span>`;
+            }).join('\n');
+
+            previousLogCount = logs.length;
+
+            // Auto-scroll to bottom
+            viewer.scrollTop = viewer.scrollHeight;
+        }
+
+        /* ═══════════════════════════════════════════
+           State Pipeline Builder
+           ═══════════════════════════════════════════ */
+        function buildStatePipeline() {
+            const container = document.getElementById('state-pipeline');
+            container.innerHTML = STATES.map((state, i) => {
+                const arrow = i < STATES.length - 1 ? '<span class="state-arrow">→</span>' : '';
+                const label = state.replace(/_/g, ' ');
+                return `<span class="state-node">${label}</span>${arrow}`;
+            }).join('');
+        }
+
+        /* ═══════════════════════════════════════════
+           Toasts
+           ═══════════════════════════════════════════ */
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast--${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 3000);
+        }
+
+        /* ═══════════════════════════════════════════
+           Polling
+           ═══════════════════════════════════════════ */
+        function startPolling() {
+            fetchStatus();
+            pollTimer = setInterval(fetchStatus, POLL_INTERVAL);
+        }
+    </script>
+</body>
+</html>
