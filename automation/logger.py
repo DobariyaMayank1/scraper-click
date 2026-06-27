@@ -7,7 +7,6 @@ Outputs to both console and a rotating log file under logs/.
 
 import os
 import logging
-from logging.handlers import RotatingFileHandler
 from collections import deque
 
 from config import Config
@@ -47,6 +46,7 @@ _logger = None
 def setup_logger():
     """
     Initialize the 'automation' logger with console + file + capture handlers.
+    Clears old logs on every startup so each session is clean.
     Safe to call multiple times — only configures once.
     """
     global _logger
@@ -57,13 +57,22 @@ def setup_logger():
     # Create logs directory
     os.makedirs(Config.LOG_DIR, exist_ok=True)
 
+    # Delete old log file so each restart is completely clean
+    file_path = os.path.join(Config.LOG_DIR, Config.LOG_FILE)
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except OSError:
+            pass
+
+    # Clear in-memory buffer from any previous session
+    _log_capture.clear()
+
     logger = logging.getLogger("automation")
     logger.setLevel(logging.DEBUG)
 
-    # Prevent duplicate handlers if called again
-    if logger.handlers:
-        _logger = logger
-        return _logger
+    # Remove any existing handlers to prevent duplicates
+    logger.handlers.clear()
 
     formatter = logging.Formatter(
         fmt="%(asctime)s | %(levelname)-7s | %(message)s",
@@ -75,12 +84,10 @@ def setup_logger():
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
 
-    # Rotating file handler — DEBUG and above
-    file_path = os.path.join(Config.LOG_DIR, Config.LOG_FILE)
-    file_handler = RotatingFileHandler(
+    # File handler — mode='w' overwrites on each startup
+    file_handler = logging.FileHandler(
         file_path,
-        maxBytes=Config.LOG_MAX_BYTES,
-        backupCount=Config.LOG_BACKUP_COUNT,
+        mode="w",
         encoding="utf-8"
     )
     file_handler.setLevel(logging.DEBUG)

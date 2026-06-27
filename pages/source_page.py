@@ -4,14 +4,23 @@ Source page object for the TextUtils testing website.
 Encapsulates all website-specific selectors and interactions.
 To support a different source website, create a new page object
 class with the same interface and swap it in the controller.
+
+TextUtils uses Monetag/Adsterra pop-under ads. These ads work by
+intercepting clicks on the page body — any click triggers a new
+tab/pop-under. There are NO visible banner ads to locate and click.
+The strategy is: click on the page body to trigger the pop-under.
 """
+
+import time
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import WebDriverException
 
 from config import Config
 from automation.logger import get_logger
-from automation.utils import multi_click, safe_wait, safe_find_elements, scroll_into_view, is_element_visible
+from automation.utils import multi_click, safe_wait, safe_find_elements, is_element_visible
 
 
 class SourcePage:
@@ -21,14 +30,14 @@ class SourcePage:
     Provides methods to interact with the source page:
         - Navigate to the page
         - Handle popups
-        - Find advertisements
-        - Click advertisements
+        - Trigger advertisement interactions
+        - Click to activate pop-under ads
 
     All website-specific selectors are isolated here.
     """
 
     # --- Selectors ---
-    # Popup selectors (common patterns for ad/cookie popups)
+    # Popup/modal close selectors (common patterns)
     POPUP_CLOSE_SELECTORS = [
         (By.CSS_SELECTOR, "button.btn-close"),
         (By.CSS_SELECTOR, "[data-bs-dismiss='modal']"),
@@ -39,20 +48,17 @@ class SourcePage:
         (By.CSS_SELECTOR, ".popup-close"),
     ]
 
-    # Advertisement selectors (generic patterns for common ad placements)
-    AD_SELECTORS = [
-        (By.CSS_SELECTOR, "iframe[id*='google_ads']"),
-        (By.CSS_SELECTOR, "iframe[id*='aswift']"),
-        (By.CSS_SELECTOR, "iframe[src*='doubleclick']"),
-        (By.CSS_SELECTOR, "iframe[src*='googlesyndication']"),
-        (By.CSS_SELECTOR, "ins.adsbygoogle"),
-        (By.CSS_SELECTOR, "[id*='ad-'] a"),
-        (By.CSS_SELECTOR, "[class*='ad-'] a"),
-        (By.CSS_SELECTOR, "[id*='advertisement'] a"),
-        (By.CSS_SELECTOR, "a[href*='googleads']"),
-        (By.CSS_SELECTOR, "a[target='_blank'][rel*='sponsored']"),
-        # Fallback: any external link that might be an ad
-        (By.CSS_SELECTOR, "a[target='_blank'][href^='http']"),
+    # Clickable regions on the page to trigger pop-under ads.
+    # Monetag/Adsterra inject invisible overlays that intercept body clicks.
+    # We click on different areas of the page to trigger them.
+    CLICK_TARGET_SELECTORS = [
+        (By.CSS_SELECTOR, "body"),
+        (By.CSS_SELECTOR, "h1"),
+        (By.CSS_SELECTOR, "h2"),
+        (By.CSS_SELECTOR, ".container"),
+        (By.CSS_SELECTOR, "textarea"),
+        (By.CSS_SELECTOR, "p"),
+        (By.CSS_SELECTOR, "nav"),
     ]
 
     def __init__(self, driver):
@@ -128,35 +134,49 @@ class SourcePage:
 
     def find_advertisements(self):
         """
-        Locate clickable advertisement elements on the page.
+        Locate clickable elements that will trigger ad interactions.
 
-        Searches for ads in iframes and as direct links.
-        Returns a list of clickable elements.
+        TextUtils uses Monetag/Adsterra pop-under ads. These work by
+        intercepting clicks anywhere on the page body. There are NO
+        visible banner ads — clicking the page itself triggers a new
+        tab/pop-under with the advertiser's page.
 
         Returns:
-            List of (element, description) tuples for found ads.
+            List of (element, description) tuples for clickable targets.
         """
         self._logger.info("Searching Advertisements")
-        found_ads = []
 
-        # First check for Google Ad iframes
-        iframe_ads = self._find_iframe_ads()
-        found_ads.extend(iframe_ads)
+        # Wait a moment for ad scripts to initialize
+        time.sleep(2)
 
-        # Then check for direct ad links
-        link_ads = self._find_link_ads()
-        found_ads.extend(link_ads)
+        found_targets = []
 
-        if found_ads:
-            self._logger.info("Found %d potential advertisement(s)", len(found_ads))
+        # Strategy 1: Look for any visible elements to click on
+        for by, selector in self.CLICK_TARGET_SELECTORS:
+            elements = safe_find_elements(
+                self._driver, by, selector, description=f"click target ({selector})"
+            )
+            for element in elements:
+                if is_element_visible(element):
+                    found_targets.append((element, f"page element: {selector}"))
+                    break  # One target per selector is enough
+
+        if found_targets:
+            self._logger.info(
+                "Found %d clickable target(s) for ad trigger", len(found_targets)
+            )
         else:
-            self._logger.warning("No advertisements found on page")
+            self._logger.warning("No clickable targets found on page")
 
-        return found_ads
+        return found_targets
 
     def click_advertisement(self, ad_element, description="advertisement"):
         """
-        Click an advertisement element with retry and fallback.
+        Click on a page element to trigger pop-under ad.
+
+        Monetag/Adsterra pop-under ads intercept clicks on the page body.
+        Clicking any visible element on the page will trigger a new
+        tab/window to open with the advertiser's content.
 
         Args:
             ad_element: The WebElement to click.
@@ -165,88 +185,45 @@ class SourcePage:
         Returns:
             True if click succeeded, False otherwise.
         """
-        self._logger.info("Attempting to click: %s", description)
+        self._logger.info("Clicking page to trigger ad: %s", description)
 
-        # Scroll the ad into view first
-        scroll_into_view(self._driver, ad_element)
+        try:
+            # Record window handles before click
+            handles_before = set(self._driver.window_handles)
 
-        # Use multi-click strategy
-        if multi_click(self._driver, ad_element, description):
-            self._logger.info("Advertisement Clicked")
-            return True
+            # Use ActionChains for a more "human-like" click
+            ActionChains(self._driver).move_to_element(ad_element).click().perform()
 
-        self._logger.warning("Failed to click advertisement: %s", description)
-        return False
+            # Give the ad script a moment to react
+            time.sleep(1.5)
 
-    def _find_iframe_ads(self):
-        """Find clickable elements inside ad iframes."""
-        found = []
-        iframe_selectors = [
-            (By.CSS_SELECTOR, "iframe[id*='google_ads']"),
-            (By.CSS_SELECTOR, "iframe[id*='aswift']"),
-            (By.CSS_SELECTOR, "iframe[src*='doubleclick']"),
-            (By.CSS_SELECTOR, "iframe[src*='googlesyndication']"),
-        ]
+            # Check if a new tab was opened (pop-under triggered)
+            handles_after = set(self._driver.window_handles)
+            new_handles = handles_after - handles_before
 
-        for by, selector in iframe_selectors:
-            iframes = safe_find_elements(
-                self._driver, by, selector, description="ad iframe"
-            )
-            for iframe in iframes:
-                if is_element_visible(iframe):
-                    try:
-                        # Switch into the iframe
-                        self._driver.switch_to.frame(iframe)
+            if new_handles:
+                self._logger.info(
+                    "Advertisement Clicked — %d new tab(s) opened", len(new_handles)
+                )
+                return True
 
-                        # Look for clickable elements inside
-                        links = safe_find_elements(
-                            self._driver, By.CSS_SELECTOR, "a[href]",
-                            description="iframe ad link"
-                        )
-                        for link in links:
-                            if is_element_visible(link):
-                                found.append((link, f"iframe ad link: {selector}"))
-                                break  # Take first visible link per iframe
+            # If no new tab, try JavaScript click as fallback
+            self._logger.debug("No new tab from ActionChains click, trying JS click")
+            self._driver.execute_script("arguments[0].click();", ad_element)
+            time.sleep(1.5)
 
-                        # Switch back to main content
-                        self._driver.switch_to.default_content()
+            handles_after = set(self._driver.window_handles)
+            new_handles = handles_after - handles_before
 
-                    except Exception:
-                        # Ensure we're back in main content
-                        try:
-                            self._driver.switch_to.default_content()
-                        except Exception:
-                            pass
+            if new_handles:
+                self._logger.info(
+                    "Advertisement Clicked via JS — %d new tab(s) opened", len(new_handles)
+                )
+                return True
 
-        return found
+            self._logger.warning("Click did not trigger any new tab")
+            return False
 
-    def _find_link_ads(self):
-        """Find direct ad link elements on the page."""
-        found = []
-        link_selectors = [
-            (By.CSS_SELECTOR, "ins.adsbygoogle a"),
-            (By.CSS_SELECTOR, "[id*='ad-'] a[href]"),
-            (By.CSS_SELECTOR, "[class*='ad-'] a[href]"),
-            (By.CSS_SELECTOR, "a[href*='googleads']"),
-            (By.CSS_SELECTOR, "a[target='_blank'][rel*='sponsored']"),
-        ]
-
-        for by, selector in link_selectors:
-            elements = safe_find_elements(
-                self._driver, by, selector, description="ad link"
-            )
-            for element in elements:
-                if is_element_visible(element):
-                    href = element.get_attribute("href") or ""
-                    found.append((element, f"ad link: {href[:60]}"))
-
-        # Deduplicate by element reference
-        seen = set()
-        unique = []
-        for elem, desc in found:
-            elem_id = id(elem)
-            if elem_id not in seen:
-                seen.add(elem_id)
-                unique.append((elem, desc))
-
-        return unique
+        except WebDriverException as e:
+            self._logger.warning("Click failed: %s", str(e)[:150])
+            return False

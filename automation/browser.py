@@ -77,12 +77,15 @@ class BrowserManager:
         if Config.BROWSER_START_MAXIMIZED:
             options.add_argument("--start-maximized")
 
-        # Suppress noisy browser logs
-        options.add_argument("--log-level=3")
-        options.add_experimental_option("excludeSwitches", ["enable-logging"])
+        # Ensure browser window is visible with a sensible size
+        options.add_argument("--window-size=1280,900")
+
+        # Disable popup blocking — we NEED pop-under ads to open new tabs
+        options.add_argument("--disable-popup-blocking")
 
         # Disable automation detection flags
         options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option("useAutomationExtension", False)
 
         try:
@@ -91,6 +94,9 @@ class BrowserManager:
             self._driver = webdriver.Chrome(service=service, options=options)
             self._driver.set_page_load_timeout(Config.PAGE_LOAD_TIMEOUT)
             self._driver.implicitly_wait(Config.IMPLICIT_WAIT)
+
+            # Force the window to the foreground
+            self._driver.maximize_window()
 
             self._logger.info("Browser opened successfully")
             return self._driver
